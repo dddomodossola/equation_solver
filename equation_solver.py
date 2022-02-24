@@ -4,7 +4,7 @@ class polinomio():
     def __init__(self):
         self.monomi_numeratore = []
         self.monomi_denominatore = []
-        #self.append_denominator(monomio(1,''))
+        self.append_denominator(monomio(1,''))
         
     def append_numerator(self, poli):
         if type(poli) in (list, tuple):
@@ -65,14 +65,14 @@ class polinomio():
     def __sub__(self, other):
         if type(other) == monomio:
             p = polinomio()
-            m.coefficiente = -m.coefficiente
+            other.coefficient = -other.coefficient
             for m in self.monomi_numeratore:
                 p.append_numerator(m)
-            #p.monomi_numeratore.append(other)
             for m in self.monomi_denominatore:
                 p.monomi_numeratore.append(m*other)
             for m in self.monomi_denominatore:
                 p.append_denominator(m)
+            
             return p
         else: #other is polinomio
             p = polinomio()
@@ -112,7 +112,20 @@ class polinomio():
                 p.append_denominator(m)
             for m in other.monomi_denominatore:
                 p.append_numerator(m)
+            if len(other.monomi_denominatore) < 1:
+                p.append_numerator(monomio(1,''))
             return self*p
+
+    def order_by_variable(self, letter):
+        self.monomi_numeratore = [v for v in sorted(self.monomi_numeratore, key=lambda item: 0 if type(item)==polinomio else item.letteral_part.count(letter))]
+        for m in self.monomi_numeratore:
+            if type(m) == polinomio:
+                m.order_by_variable(letter)
+
+        self.monomi_denominatore = [v for v in sorted(self.monomi_denominatore, key=lambda item: 0 if type(item)==polinomio else item.letteral_part.count(letter))]
+        for m in self.monomi_denominatore:
+            if type(m) == polinomio:
+                m.order_by_variable(letter)
 
     def replace(self, letter, other_poly):
         p = polinomio()
@@ -180,7 +193,7 @@ class polinomio():
 
 
     def __str__(self):
-        self.sum_and_substract()
+        #self.sum_and_substract()
         res = ''
         res = ' '.join([str(x) for x in self.monomi_numeratore])
         if len(self.monomi_denominatore) > 0:
@@ -319,8 +332,11 @@ class monomio():
         return str(self)
         
 
-p = (monomio(2,"x") + monomio(1,"y"))*monomio(-1,"y")
+p = (monomio(2,"x") + monomio(1,"y") + monomio(1,"yy"))*monomio(-1,"y")/(monomio(1,'xy') + monomio(3,'yy') - monomio(1,'xx'))
 p.sum_and_substract()
+p.order_by_variable('y')
+print(p)
+p.order_by_variable('x')
 print(p)
 
 pc = polinomio()
@@ -331,6 +347,10 @@ pa = polinomio()
 pa.append_numerator([ monomio(1,"aaBB") / monomio(1,"AA"), monomio(4,"bBC")/monomio(1,"AA"), monomio(-2, "abB")/monomio(1,"A"), monomio(4,"aC")/monomio(1,"A"), monomio(1,"bb"), monomio(-4,"c"), monomio(-4,"BBc")/monomio(1,"AA"), monomio(-4,"CC")/monomio(1,"AA")])
 pa = pa.replace("c", pc) #+aaBB/AA -2abB/A +4aC/A +4BBa*X/AA +4a*X +4bBC/AA +bb +4X*X +4Y*Y +4b*Y +4BBX*X/AA +4BBY*Y/AA +4BBb*Y/AA -4CC/AA = 0 #equazione secondo grado calcoliamo il delta in a
 
+pA = monomio(1,'a') - monomio(1,'o')
+pa = pa.replace("A", pA)
+
+print(pa)
 
 #delta1a=BB/AA      
 deltaa = monomio(1, 'BB') / monomio(1,'AA')
