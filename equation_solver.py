@@ -1,365 +1,385 @@
-class polinomio():
-    monomi_numeratore = None
-    monomi_denominatore = None
+class polynomial():
+    monomials = None
     def __init__(self):
-        self.monomi_numeratore = []
-        self.monomi_denominatore = []
-        self.append_denominator(monomio(1,''))
+        self.monomials = []
         
-    def append_numerator(self, poli):
+    def append(self, poli):
         if type(poli) in (list, tuple):
             for m in poli:
-                self.monomi_numeratore.append(m)
+                self.append(m)
+        elif type(poli) == polynomial:
+            for m in poli.monomials:
+                self.append(m)
         else:
-            self.monomi_numeratore.append(poli)
+            self.monomials.append(poli)
 
-    def append_denominator(self, poli):
-        if type(poli) in (list, tuple):
-            for m in poli:
-                self.monomi_denominatore.append(m)
-        else:
-            self.monomi_denominatore.append(poli)
-            
     def __mul__(self, other):
-        res = polinomio()
-        for m1 in self.monomi_numeratore:
-            if type(other) == monomio:
-                res.append_numerator(m1*other)
+        res = polynomial()
+        for m1 in self.monomials:
+            if type(other) == monomial:
+                res.append(m1*other)
+            elif type(other) == polynomial:
+                for m2 in other.monomials:
+                    res.append(m1*m2)
             else:
-                for m2 in other.monomi_numeratore:
-                    res.append_numerator(m1*m2)
-        
-        for m1 in self.monomi_denominatore:
-            if type(other) == polinomio:
-                for m2 in other.monomi_denominatore:
-                    res.append_denominator(m1*m2)
-            else:
-                res.append_denominator(m1)
+                print("polynomial.__mul__ (%s) not implemented"%str(type(other)))
+                raise NotImplementedError
+
         return res
 
     def __add__(self, other):
-        if type(other) == monomio:
-            p = polinomio()
-            for m in self.monomi_numeratore:
-                p.append_numerator(m)
-            #p.monomi_numeratore.append(other)
-            for m in self.monomi_denominatore:
-                p.monomi_numeratore.append(m*other)
-            for m in self.monomi_denominatore:
-                p.append_denominator(m)
+        if type(other) == monomial:
+            p = polynomial()
+            for m in self.monomials:
+                p.append(m)
+            p.append(other)
             return p
-        else: #other is polinomio
-            p = polinomio()
-            for m in self.monomi_numeratore:
-                for d in other.monomi_denominatore:
-                    p.append_numerator(m*d)
-            for m in other.monomi_numeratore:
-                for d in self.monomi_denominatore:
-                    p.append_numerator(m*d)
-            for d in self.monomi_denominatore:
-                p.append_denominator(d)
-            for d in other.monomi_denominatore:
-                p.append_denominator(d)
+        elif type(other) == polynomial:
+            p = polynomial()
+            for m in self.monomials:
+                p.append(m)
+            for m in other.monomials:
+                p = p + m
             return p
+        else:
+            print("polynomial.__add__ (%s) not implemented"%str(type(other)))
+            raise NotImplementedError
 
     def __sub__(self, other):
-        if type(other) == monomio:
-            p = polinomio()
+        if type(other) == monomial:
+            p = polynomial()
+            for m in self.monomials:
+                p.append(m)
             other.coefficient = -other.coefficient
-            for m in self.monomi_numeratore:
-                p.append_numerator(m)
-            for m in self.monomi_denominatore:
-                p.monomi_numeratore.append(m*other)
-            for m in self.monomi_denominatore:
-                p.append_denominator(m)
-            
+            p.append(other)
             return p
-        else: #other is polinomio
-            p = polinomio()
-            for m in self.monomi_numeratore:
-                for d in other.monomi_denominatore:
-                    p.append_numerator(m*d)
-            for m in other.monomi_numeratore:
-                for d in self.monomi_denominatore:
-                    dd = m*d
-                    dd.coefficient = - dd.coefficient
-                    p.append_numerator(dd)
-            for d in self.monomi_denominatore:
-                p.append_denominator(d)
-            for d in other.monomi_denominatore:
-                p.append_denominator(d)
+        elif type(other) == polynomial:
+            p = polynomial()
+            for m in self.monomials:
+                p.append(m)
+            for m in other.monomials:
+                p = p - m
             return p
-
+        else:
+            print("polynomial.__sub__(%s) not implemented"%str(type(other)))
+            raise NotImplementedError
+    
     def __pow__(self, n):
         #self.coefficient **= n
-        #self.letteral_part = self.letteral_part * n
+        #self.literal_part = self.literal_part * n
         p = self*self
-        for i in range(0,n):
+        for i in range(0,n-1):
             p*=self
         return p
 
     def __truediv__(self, other):
-        #print("polinomio.__truediv__ NOT IMPLEMENTED")
-        p = polinomio()
-        if type(other) == monomio:
-            numerator = monomio(1.0, '')
-            p.append_numerator(numerator)
-            p.append_denominator(other)
-            return self*p
-        
-        else: #other is polinomio
-            for m in other.monomi_numeratore:
-                p.append_denominator(m)
-            for m in other.monomi_denominatore:
-                p.append_numerator(m)
-            if len(other.monomi_denominatore) < 1:
-                p.append_numerator(monomio(1,''))
-            return self*p
+        if type(other) == monomial:
+            p = polynomial()
+            for m in self.monomials:
+                p.append(m/other)
+            return p
+        elif type(other) == polynomial:
+            f = algebraic_fraction(self, other)
+            return f
+        else:
+            print("polynomial.__truediv__(%s) not implemented"%str(type(other)))
+            raise NotImplementedError
 
-    def order_by_variable(self, letter):
-        self.monomi_numeratore = [v for v in sorted(self.monomi_numeratore, key=lambda item: 0 if type(item)==polinomio else item.letteral_part.count(letter))]
-        for m in self.monomi_numeratore:
-            if type(m) == polinomio:
-                m.order_by_variable(letter)
-
-        self.monomi_denominatore = [v for v in sorted(self.monomi_denominatore, key=lambda item: 0 if type(item)==polinomio else item.letteral_part.count(letter))]
-        for m in self.monomi_denominatore:
-            if type(m) == polinomio:
-                m.order_by_variable(letter)
+    def sort_by_variable(self, letter):
+        self.monomials = [v for v in sorted(self.monomials, key=lambda item: item.degree_for_letter(letter), reverse=True)]
+        for m in self.monomials:
+            if type(m) == polynomial:
+                m.sort_by_variable(letter)
 
     def replace(self, letter, other_poly):
-        p = polinomio()
-        print("n monomi:", len(self.monomi_numeratore))
-        for m1 in self.monomi_numeratore:
-            #if type(m1) == polinomio:
-            #    p.append_numerator(m1.replace(letter, other_poly))
-            #else:
-            p.append_numerator(m1.replace(letter, other_poly))
-        for m1 in self.monomi_denominatore:
-            p.append_denominator(m1.replace(letter, other_poly))
-            #else:
-            #    p.append_denominator(ml.replace(letter, other_poly))
-                        
+        p = polynomial()
+        print("n monomi:", len(self.monomials))
+        for m1 in self.monomials:
+            p.append(m1.replace(letter, other_poly))
+   
         return p
 
     def sum_and_substract(self):
-        p = polinomio()
-        while len(self.monomi_numeratore) > 0:
-            res = self.monomi_numeratore[0]
-            del self.monomi_numeratore[0]
+        p = polynomial()
+        while len(self.monomials) > 0:
+            res = self.monomials[0]
+            del self.monomials[0]
 
-            if type(res) == polinomio:
+            if type(res) == polynomial:
                 res.sum_and_substract()
 
             else:
                 ii = 0
-                while ii < len(self.monomi_numeratore):
-                    if type(self.monomi_numeratore[ii]) == polinomio:
+                while ii < len(self.monomials):
+                    if type(self.monomials[ii]) == polynomial:
                         ii+=1
                         continue
 
-                    if res == self.monomi_numeratore[ii]:
-                        res += self.monomi_numeratore[ii]
-                        del self.monomi_numeratore[ii]
+                    if res == self.monomials[ii]:
+                        res += self.monomials[ii]
+                        del self.monomials[ii]
                     else:
                         ii+=1
-            p.append_numerator(res)
-
-        while len(self.monomi_denominatore) > 0:
-            res = self.monomi_denominatore[0]
-            del self.monomi_denominatore[0]
-
-            if type(res) == polinomio:
-                res.sum_and_substract()
-
-            else:
-                ii = 0
-                while ii < len(self.monomi_denominatore):
-                    if type(self.monomi_denominatore[ii]) == polinomio:
-                        ii+=1
-                        continue
-                    
-                    if res == self.monomi_denominatore[ii]:
-                        res += self.monomi_denominatore[ii]
-                        del self.monomi_denominatore[ii]
-                    else:
-                        ii+=1
-            p.append_denominator(res)
+            p.append(res)
         
-        for m in p.monomi_numeratore:
-            self.monomi_numeratore.append(m)
-        for m in p.monomi_denominatore:
-            self.monomi_denominatore.append(m) 
+        for m in p.monomials:
+            self.monomials.append(m)
 
+    def __str__(self):
+        self.sum_and_substract()
+        res = ''
+        res = ' '.join([str(x) for x in self.monomials])
+        return res
+        
+    def __repr__(self):
+        return str(self)
+
+    def __len__(self):
+        return len(self.monomials)
+
+    def degree(self):
+        res = 0
+        for m in self.monomials:
+            res = max(res, len(m.literal_part))
+        return res
+
+    def degree_for_letter(self, letter):
+        res = 0
+        for m in self.monomials:
+            res = max(res, m.degree_for_letter(letter))
+        return res
+
+
+class algebraic_fraction(polynomial):
+    denominator = None
+    def __init__(self, _numerator = None, _denominator = None):
+        polynomial.__init__(self)
+        if _numerator:
+            self.append(_numerator)
+
+        self.denominator = polynomial()
+        if _denominator:
+            self.denominator.append(_denominator)
+        else:
+            self.denominator.append(monomial(1,''))
+
+    def __add__(self, other):
+        print("algebraic_fraction.__add__(%s) not implemented"%str(type(other)))
+        raise NotImplementedError
+    
+    def __sub__(self, other):
+        print("algebraic_fraction.__sub__(%s) not implemented"%str(type(other)))
+        raise NotImplementedError
+    
+    def __mul__(self, other):
+        print("algebraic_fraction.__mul__(%s) not implemented"%str(type(other)))
+        raise NotImplementedError
+        
+    def __truediv__(self, other):
+        print("algebraic_fraction.__truediv__(%s) not implemented"%str(type(other)))
+        raise NotImplementedError
 
     def __str__(self):
         #self.sum_and_substract()
         res = ''
-        res = ' '.join([str(x) for x in self.monomi_numeratore])
-        if len(self.monomi_denominatore) > 0:
-            res = '(' + res + ')/(' + ' '.join([str(x) for x in self.monomi_denominatore]) + ')'
-        return '+' + res
+        res = ' '.join([str(x) for x in self.monomials])
+        if len(self.denominator) > 0:
+            #if it is not a denominator 1
+            if not (len(self.denominator) == 1 and (self.denominator.degree() == 0)  and (self.denominator.monomials[0].coefficient == 1)):
+                res = '+(' + res + ')/(' + str(self.denominator) + ')'
+        return res
         
     def __repr__(self):
         return str(self)
-                
+
+    def sort_by_variable(self, letter):
+        polynomial.sort_by_variable(self, letter)
+        polynomial.sort_by_variable(self.denominator, letter)
         
-class monomio():
+    def replace(self, letter, other_poly):
+        n = polynomial.replace(self, letter, other_poly)
+        d = polynomial.replace(self.denominator, letter, other_poly)
+        return algebraic_fraction(n, d)
+
+    def sum_and_substract(self):
+        polynomial.sum_and_substract(self)
+        polynomial.sum_and_substract(self.denominator)
+
+    def degree_for_letter(self, letter):
+        n = polynomial.degree_for_letter(self, letter)
+        d = polynomial.degree_for_letter(self.denominator, letter)
+        return max(n, d)
+
+
+class monomial():
     coefficient = 0
-    letteral_part = None
+    literal_part = None
     def __init__(self, c, l):
         self.coefficient = c
-        self.letteral_part = l
+        self.literal_part = l
 
-    def sort_letteral_part(self):
+    def sort_literal_part(self):
         letters_aggregated = {}
-        for l in self.letteral_part:
+        for l in self.literal_part:
             if not l in list(letters_aggregated.keys()):
                 letters_aggregated[l] = ''    
             letters_aggregated[l] = letters_aggregated[l] + l
-        self.letteral_part = ''
+        self.literal_part = ''
         for k in sorted(list(letters_aggregated.keys())):
-            self.letteral_part += letters_aggregated[k]
+            self.literal_part += letters_aggregated[k]
 
     def __eq__(self, other):
-        for l in self.letteral_part:
-            if not self.letteral_part.count(l) == other.letteral_part.count(l):
+        for l in self.literal_part:
+            if not self.literal_part.count(l) == other.literal_part.count(l):
                 return False
-        for l in other.letteral_part:
-            if not self.letteral_part.count(l) == other.letteral_part.count(l):
+        for l in other.literal_part:
+            if not self.literal_part.count(l) == other.literal_part.count(l):
                 return False
         return True
     
     def __add__(self, other):
-        if type(other) == polinomio:
+        if type(other) != monomial:
             return other + self
 
         #si puo' sommare solo quando la parte letterale e' uguale tra i due monomi
         if self == other:
-            #self.coefficient += other.coefficient
-            return monomio(self.coefficient + other.coefficient, self.letteral_part)
+            return monomial(self.coefficient + other.coefficient, self.literal_part)
         else:
-            p = polinomio()
-            p.append_numerator(self)
-            p.append_numerator(other)
+            p = polynomial()
+            p.append(self)
+            p.append(other)
             return p
 
     def __sub__(self, other):
-        if type(other) == polinomio:
-            return other - self
+        if type(other) == polynomial:
+            p = polynomial()
+            p.append(self)
+            return p-other
+
+        if type(other) != monomial:
+            print("monomial.__sub__(%s) not implemented"%str(type(other)))
+            raise NotImplementedError
             
         #si puo' sottrarre solo quando la parte letterale e' uguale tra i due monomi
         if self == other:
-            #self.coefficient -= other.coefficient
-            return monomio(self.coefficient - other.coefficient, self.letteral_part)
+            return monomial(self.coefficient - other.coefficient, self.literal_part)
         else:
-            p = polinomio()
-            p.append_numerator(self)
-            p.append_numerator(other)
+            p = polynomial()
+            p.append(self)
+            other.coefficient = -other.coefficient
+            p.append(other)
             return p
             
     def __mul__(self, other):
-        if type(other) == polinomio:
-            p = polinomio()
-            for m in other.monomi_numeratore:
-                p.append_numerator(self*m)
-            for m in other.monomi_denominatore:
-                p.append_denominator(m)
-            return p
-        #self.coefficient *= other.coefficient
-        #self.letteral_part += other.letteral_part
-        return monomio(self.coefficient * other.coefficient, self.letteral_part + other.letteral_part)
+        if type(other) == polynomial:
+            return other*self
+
+        if type(other) != monomial:
+            print("monomial.__mul__(%s) not implemented"%str(type(other)))
+            raise NotImplementedError
+
+        return monomial(self.coefficient * other.coefficient, self.literal_part + other.literal_part)
 
     def __pow__(self, n):
         #self.coefficient **= n
-        #self.letteral_part = self.letteral_part * n
-        return monomio(self.coefficient**n, self.letteral_part * n)
+        #self.literal_part = self.literal_part * n
+        return monomial(self.coefficient**n, self.literal_part * n)
 
     def __truediv__(self, other):
-        if type(other) == polinomio:
-            p = polinomio()
-            for m in other.monomi_numeratore:
-                p.append_denomiator(m)
-            for m in other.monomi_denominatore:
-                p.append_numerator(self*m)
-            return p
-        
-        cof = self.coefficient
-        let = self.letteral_part
-        #self.coefficient /= other.coefficient
-        cof /= other.coefficient
-        for l in self.letteral_part:
-            #self.letteral_part = self.letteral_part.replace(l, '', other.count(l))
-            let = let.replace(l, '', other.letteral_part.count(l))
-            other.letteral_part = other.letteral_part.replace(l, '')
+        if type(other) == polynomial:
+            p = polynomial()
+            p.append(self)
+            return p/other
 
-        other.coefficient = 1
-        m = monomio(cof, let)
-        if len(other.letteral_part)>0:
-            p = polinomio()
-            p.append_numerator(m)
-            p.append_denominator(other)
-            return p
+        if type(other) != monomial:
+            print("monomial.__truediv__(%s) not implemented"%str(type(other)))
+            raise NotImplementedError
+        
+        other_copy = monomial(other.coefficient, other.literal_part)
+
+        cof = self.coefficient
+        let = self.literal_part
+        #self.coefficient /= other_copy.coefficient
+        cof /= other_copy.coefficient
+        for l in self.literal_part:
+            #self.literal_part = self.literal_part.replace(l, '', other_copy.count(l))
+            let = let.replace(l, '', other_copy.literal_part.count(l))
+            other_copy.literal_part = other_copy.literal_part.replace(l, '')
+
+        other_copy.coefficient = 1
+        m = monomial(cof, let)
+        if len(other_copy.literal_part)>0:
+            f = algebraic_fraction(m, other_copy)
+            return f
         return m
 
     def replace(self, letter, other):
-        m_res = monomio(self.coefficient, self.letteral_part.replace(letter, ''))
+        m_res = monomial(self.coefficient, self.literal_part.replace(letter, ''))
 
-        if type(other) == monomio:
-            for i in range(0,self.letteral_part.count(letter)):
+        if type(other) == monomial:
+            for i in range(0,self.literal_part.count(letter)):
                 m_res = m_res*other
             return m_res
         
-        if type(other) == polinomio:
-            for i in range(0,self.letteral_part.count(letter)):
+        if type(other) == polynomial:
+            for i in range(0,self.literal_part.count(letter)):
                 m_res = m_res*other
             return m_res
         return self
 
     def __str__(self):
-        self.sort_letteral_part()
+        self.sort_literal_part()
         
         if self.coefficient == 0:
             return ''
         sign = ('+' if self.coefficient>0 else '-')
         cof = str(abs(self.coefficient)) if self.coefficient != 1.0 else ''
         if self.coefficient == 1.0:
-            if len(self.letteral_part) < 1:
+            if len(self.literal_part) < 1:
                 cof = '1'
-        return  sign + cof + '*' + '*'.join([c for c in self.letteral_part])
+        return  sign + cof + '*' + '*'.join([c for c in self.literal_part])
     
     def __repr(self):
         return str(self)
+
+    def degree(self, letter):
+        return len(self.literal_part)
+
+    def degree_for_letter(self, letter):
+        return self.literal_part.count(letter)
         
 
-p = (monomio(2,"x") + monomio(1,"y") + monomio(1,"yy"))*monomio(-1,"y")/(monomio(1,'xy') + monomio(3,'yy') - monomio(1,'xx'))
+p = monomial(1,'axxx') -monomial(0.5,'ax') + monomial(3,'axx')
+print(p/monomial(-0.5,'ax'))
+
+p = (monomial(2,"x") + monomial(1,"y") + monomial(1,"yy"))*monomial(-1,"y")/(monomial(1,'xy') + monomial(3,'yy') - monomial(1,'xx'))
 p.sum_and_substract()
-p.order_by_variable('y')
+p.sort_by_variable('y')
 print(p)
-p.order_by_variable('x')
+p.sort_by_variable('x')
 print(p)
 
-pc = polinomio()
+pc = polynomial()
 #c = -X*X -Y*Y -a*X -b*Y
-pc.append_numerator([ monomio(-1,"XX"), monomio(-1,"YY"), monomio(-1,"aX"), monomio(-1,"bY")])
+pc.append([ monomial(-1,"XX"), monomial(-1,"YY"), monomial(-1,"aX"), monomial(-1,"bY")])
 
-pa = polinomio()
-pa.append_numerator([ monomio(1,"aaBB") / monomio(1,"AA"), monomio(4,"bBC")/monomio(1,"AA"), monomio(-2, "abB")/monomio(1,"A"), monomio(4,"aC")/monomio(1,"A"), monomio(1,"bb"), monomio(-4,"c"), monomio(-4,"BBc")/monomio(1,"AA"), monomio(-4,"CC")/monomio(1,"AA")])
+pa = polynomial()
+pa.append([ monomial(1,"aaBB") / monomial(1,"AA"), monomial(4,"bBC")/monomial(1,"AA"), monomial(-2, "abB")/monomial(1,"A"), monomial(4,"aC")/monomial(1,"A"), monomial(1,"bb"), monomial(-4,"c"), monomial(-4,"BBc")/monomial(1,"AA"), monomial(-4,"CC")/monomial(1,"AA")])
 pa = pa.replace("c", pc) #+aaBB/AA -2abB/A +4aC/A +4BBa*X/AA +4a*X +4bBC/AA +bb +4X*X +4Y*Y +4b*Y +4BBX*X/AA +4BBY*Y/AA +4BBb*Y/AA -4CC/AA = 0 #equazione secondo grado calcoliamo il delta in a
 
-pA = monomio(1,'a') - monomio(1,'o')
+pA = monomial(1,'a') - monomial(1,'o')
 pa = pa.replace("A", pA)
 
 print(pa)
 
 #delta1a=BB/AA      
-deltaa = monomio(1, 'BB') / monomio(1,'AA')
+deltaa = monomial(1, 'BB') / monomial(1,'AA')
 #delta1b=-2bB/A +4C/A +4BBX/AA +4X        
-deltab = monomio(-2, 'bB') / monomio(1,'A') + monomio(4, 'C') / monomio(1,'A') + monomio(4, 'BBX') / monomio(1,'AA') + monomio(4,'X')
+deltab = monomial(-2, 'bB') / monomial(1,'A') + monomial(4, 'C') / monomial(1,'A') + monomial(4, 'BBX') / monomial(1,'AA') + monomial(4,'X')
 #delta1c=           +4bBC/AA                  +bb               +4X*X            +4Y*Y             +4b*Y             +4BBX*X/AA                            +4BBY*Y/AA                               +4BBb*Y/AA                          -4CC/AA
-deltac = monomio(4, 'bBC') / monomio(1,'AA') + monomio(1,'bb') + monomio(4,'XX') + monomio(4,'YY') + monomio(4,'bY') + monomio(4,'BBXX') / monomio(1,'AA') + monomio(4,'BBYY') / monomio(1,'AA') + monomio(4,'BBbY') / monomio(1,'AA') -monomio(4,'CC') / monomio(1,'AA')
-delta = deltab*deltab - monomio(4,'')*deltaa*deltac
-#sol = (deltab*deltab - math.sqrt(delta))/(monomio(2,'')*deltaa)
+deltac = monomial(4, 'bBC') / monomial(1,'AA') + monomial(1,'bb') + monomial(4,'XX') + monomial(4,'YY') + monomial(4,'bY') + monomial(4,'BBXX') / monomial(1,'AA') + monomial(4,'BBYY') / monomial(1,'AA') + monomial(4,'BBbY') / monomial(1,'AA') -monomial(4,'CC') / monomial(1,'AA')
+delta = deltab*deltab - monomial(4,'')*deltaa*deltac
+#sol = (deltab*deltab - math.sqrt(delta))/(monomial(2,'')*deltaa)
 #+aaRR/TT +4bRG/TT -2abR/T +4aG/T  +bb +4X*X +4Y*Y +4a*X +4b*Y +4RRX*X/TT +4RRY*Y/TT +4RRa*X/TT +4RRb*Y/TT -4GG/TT = 0
 print(delta)
 #+(+20.0AAAAAAAAAABBbb -80.0AAAAAAAAAABCb -160.0AAAAAAAABBBXb -160.0AAAAAAAABXb -80.0AAAAAAAAABXb +80.0AAAAAAAAAACC +320.0AAAAAAAABBCX +320.0AAAAAAAACX +160.0AAAAAAAAACX +320.0AAAAAABBBBXX +640.0AAAAAABBXX +320.0AAAAAAABBXX +320AAAAAAXX +320AAAAAAAXX +80AAAAAAAAXX -64.0AAAAAAAAAABBBCb -64.0AAAAAAAAAAABBBCb -16.0AAAAAAAAAAAABBBCb -16.0AAAAAAAAAAAABBbb -16.0AAAAAAAAAAAAABBbb -4.0AAAAAAAAAAAAAABBbb -64.0AAAAAAAAAAAABBXX -64.0AAAAAAAAAAAAABBXX -16.0AAAAAAAAAAAAAABBXX -64.0AAAAAAAAAAAABBYY -64.0AAAAAAAAAAAAABBYY -16.0AAAAAAAAAAAAAABBYY -64.0AAAAAAAAAAAABBYb -64.0AAAAAAAAAAAAABBYb -16.0AAAAAAAAAAAAAABBYb -64.0AAAAAAAAAABBBBXX -64.0AAAAAAAAAAABBBBXX -16.0AAAAAAAAAAAABBBBXX -128.0AAAAAAAABBBBYY -128.0AAAAAAAAABBBBYY -32.0AAAAAAAAAABBBBYY -192.0AAAAAABBBBYb -192.0AAAAAAABBBBYb -48.0AAAAAAAABBBBYb +256.0AAAABBCC +256.0AAAAABBCC +64.0AAAAAABBCC)/(+4AA +4AAA +6AAAA)
