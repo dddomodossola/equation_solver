@@ -149,6 +149,18 @@ class polynomial():
             res = max(res, m.degree_for_letter(letter))
         return res
 
+    def to_complete_for_letter(self, letter):
+        self.sort_by_variable(letter)
+        p = polynomial()
+        i = 0
+        for deg in range(self.degree_for_letter(letter), -1,-1):
+            if i<len(self.monomials) and self.monomials[i].degree_for_letter(letter) == deg:
+                p.append(self.monomials[i])
+                i += 1
+            else:
+                p.append( monomial(0,letter*deg) )
+        return p
+
 
 class algebraic_fraction(polynomial):
     denominator = None
@@ -179,6 +191,47 @@ class algebraic_fraction(polynomial):
         print("algebraic_fraction.__truediv__(%s) not implemented"%str(type(other)))
         raise NotImplementedError
 
+    def div_by_letter(self, letter):
+        Q = polynomial()
+        R = polynomial()
+        for m in self.monomials:
+            R.append(m)
+        if self.denominator.degree_for_letter(letter) > self.degree_for_letter(letter):
+            return R
+
+        R.sort_by_variable(letter)
+        self.denominator.sort_by_variable(letter)
+
+        R = R.to_complete_for_letter(letter)
+        #D = self.denominator
+
+        while R.degree_for_letter(letter) >= self.denominator.degree_for_letter(letter):
+            i = 0
+            #for m in self.denominator.monomials:
+            Q.append(R.monomials[0] / self.denominator.monomials[0])
+            
+
+            R.monomials = R.monomials[1:] #eliminazione termine grado massimo
+            riporto = polynomial()
+            for mm in self.denominator.monomials:
+                riporto.append(mm*Q.monomials[-1])
+
+                #la sottrazione viene fatta sotto
+                #riporto[-1].coefficient -= riporto[-1].coefficient
+            riporto.monomials = riporto.monomials[1:]
+            
+            ii = 0
+            _R = polynomial()
+            for mm in R.monomials:
+                if len(riporto.monomials) > ii:
+                    _R.append(mm - riporto.monomials[ii])
+                else:
+                    _R.append(monomial(mm.coefficient, mm.literal_part))
+                ii += 1
+            R = _R
+
+        return Q,R
+        
     def __str__(self):
         #self.sum_and_substract()
         res = ''
@@ -229,6 +282,9 @@ class monomial():
             self.literal_part += letters_aggregated[k]
 
     def __eq__(self, other):
+        if not type(other) == monomial:
+            return False
+
         for l in self.literal_part:
             if not self.literal_part.count(l) == other.literal_part.count(l):
                 return False
@@ -334,20 +390,35 @@ class monomial():
             return ''
         sign = ('+' if self.coefficient>0 else '-')
         cof = str(abs(self.coefficient)) if self.coefficient != 1.0 else ''
+
         if self.coefficient == 1.0:
             if len(self.literal_part) < 1:
                 cof = '1'
-        return  sign + cof + '*' + '*'.join([c for c in self.literal_part])
+        else:
+            if len(self.literal_part) > 0:
+                cof += '*'
+        return  sign + cof + '*'.join([c for c in self.literal_part])
     
     def __repr(self):
         return str(self)
 
-    def degree(self, letter):
+    def degree(self):
         return len(self.literal_part)
 
     def degree_for_letter(self, letter):
         return self.literal_part.count(letter)
         
+
+p = (monomial(9,'aaa') + monomial(10,'aay') + monomial(6,'ayy')+monomial(4,'yyy')) / (monomial(3,'aa') + monomial(-1,'ay') + monomial(2,'yy'))
+print(p)
+print(p.div_by_letter('a'))
+
+p=monomial(1,'xxxx')+monomial(1,'x')-monomial(1,'')+monomial(2,'xx')
+d=monomial(1,'xx') + monomial(1,'') + monomial(1,'x')
+r = p/d
+print(r)
+r = r.div_by_letter('x') 
+print(r)
 
 p = monomial(1,'axxx') -monomial(0.5,'ax') + monomial(3,'axx')
 print(p/monomial(-0.5,'ax'))
@@ -370,6 +441,15 @@ pa = pa.replace("c", pc) #+aaBB/AA -2abB/A +4aC/A +4BBa*X/AA +4a*X +4bBC/AA +bb 
 pA = monomial(1,'a') - monomial(1,'o')
 pa = pa.replace("A", pA)
 
+print(pa)
+for i in range(0, len(pa)):
+    if type(pa.monomials[i]) == algebraic_fraction:
+        print("dividing by A: " + str(pa.monomials[i]))
+        res = pa.monomials[i].div_by_letter('a')
+        print("result: " + str(res))
+        pa.append(res[1]/pa.monomials[i].denominator)
+        pa.monomials[i] = res[0]
+pa.sort_by_variable('a')
 print(pa)
 
 #delta1a=BB/AA      
